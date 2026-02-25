@@ -125,8 +125,9 @@
     <h2 id="welcome-title">Добро пожаловать</h2>
     <p id="welcome-desc">Введи своё имя и адрес почты — мы сохраним твой прогресс и заметки, чтобы они были доступны с любого устройства.</p>
     <input class="welcome-input" id="nameInput" type="text" placeholder="Имя и фамилия" maxlength="60" style="margin-bottom:10px" />
-    <input class="welcome-input" id="emailInput" type="email" placeholder="Email" maxlength="100" />
+    <input class="welcome-input" id="emailInput" type="email" placeholder="Email" maxlength="100" style="margin-bottom:14px" />
     <button class="welcome-btn" id="startBtn" onclick="startJournal()" disabled>Начать →</button>
+    <button onclick="skipRegistration()" style="background:none;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;margin-top:12px;text-decoration:underline;text-underline-offset:3px" id="skipBtn">Войти без регистрации</button>
   </div>
 </div>
 
@@ -220,6 +221,7 @@ const T = {
     welcome_name: "Имя и фамилия",
     welcome_email: "Email",
     welcome_btn: "Начать →",
+    skip_btn: "Войти без регистрации",
     notes_placeholder: "Что зацепило? Как применимо в твоих проектах?",
     save_note: "Сохранить заметку",
     mark_read: "Отметить прочитанным →",
@@ -244,6 +246,7 @@ const T = {
     welcome_name: "Full name",
     welcome_email: "Email",
     welcome_btn: "Get started →",
+    skip_btn: "Continue without registering",
     notes_placeholder: "What caught your attention? How does it apply to your projects?",
     save_note: "Save note",
     mark_read: "Mark as read →",
@@ -268,6 +271,7 @@ const T = {
     welcome_name: "שם מלא",
     welcome_email: "אימייל",
     welcome_btn: "להתחיל →",
+    skip_btn: "כניסה ללא הרשמה",
     notes_placeholder: "מה תפס את תשומת לבך? איך ניתן ליישם זאת בפרויקטים שלך?",
     save_note: "שמור הערה",
     mark_read: "סמן כנקרא →",
@@ -414,29 +418,36 @@ let _read = [];
 let _notes = {};
 
 // ─── USER MANAGEMENT ─────────────────────────────────────────────
+function checkReady() {
+  const name = document.getElementById('nameInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  document.getElementById('startBtn').disabled = !(name.length >= 2 && emailValid);
+}
+
 function initUser() {
   const savedEmail = localStorage.getItem('aicj_email');
   const savedName = localStorage.getItem('aicj_name');
   if (savedEmail && savedName) {
-    currentUser = savedEmail; // email — уникальный ключ
+    currentUser = savedEmail;
     document.getElementById('welcomeScreen').style.display = 'none';
     document.getElementById('userBadge').style.display = 'flex';
     document.getElementById('userName').textContent = savedName;
     loadFromSheets();
   }
-
-  function checkReady() {
-    const name = document.getElementById('nameInput').value.trim();
-    const email = document.getElementById('emailInput').value.trim();
-    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    document.getElementById('startBtn').disabled = !(name.length >= 2 && emailValid);
-  }
-
   document.getElementById('nameInput').addEventListener('input', checkReady);
   document.getElementById('emailInput').addEventListener('input', checkReady);
   document.getElementById('emailInput').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') startJournal();
   });
+}
+
+function skipRegistration() {
+  currentUser = 'guest_' + Date.now();
+  localStorage.removeItem('aicj_email');
+  localStorage.removeItem('aicj_name');
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('userBadge').style.display = 'none';
 }
 
 function startJournal() {
@@ -535,6 +546,7 @@ function updateWelcome() {
   document.getElementById('nameInput').placeholder = t.welcome_name;
   document.getElementById('emailInput').placeholder = t.welcome_email;
   document.getElementById('startBtn').textContent = t.welcome_btn;
+  if (document.getElementById('skipBtn')) document.getElementById('skipBtn').textContent = t.skip_btn;
   // sync lang buttons inside welcome
   document.querySelectorAll('.welcome-overlay .lang-btn').forEach(b => {
     b.classList.toggle('active', b.textContent === lang.toUpperCase());
