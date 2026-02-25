@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Cases Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --border: #e8e4dc;
+    --text: #1a1814;
+    --muted: #9a9590;
+    --accent: #1a1814;
+    --edu-c: #1d5fa8; --edu-bg: #eef5fd;
+    --mgmt-c: #b86200; --mgmt-bg: #fef5e8;
+    --prod-c: #1a7a4a; --prod-bg: #edfaf3;
+    --gov-c: #6b3db5; --gov-bg: #f4effe;
+    --cn-c: #b81d1d; --cn-bg: #feeee e;
+    --ru-c: #1a5c9e; --ru-bg: #edf4fe;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: 'Playfair Display', Georgia, serif; color: var(--text); min-height: 100vh; }
+  body[dir="rtl"] { direction: rtl; }
+
+  /* HEADER */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; position: sticky; top: 0; z-index: 10; }
+  .header-inner { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .header-left .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; }
+  h1 { font-size: 24px; font-weight: 400; letter-spacing: -.01em; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .progress-block { text-align: right; }
+  .progress-count { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 500; }
+  .progress-count span { font-size: 13px; color: var(--muted); font-weight: 400; }
+  .progress-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); margin: 3px 0; }
+  .progress-bar { width: 90px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-left: auto; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+  .lang-switcher { display: flex; gap: 4px; }
+  .lang-btn { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px; background: transparent; cursor: pointer; color: var(--muted); transition: all .15s; }
+  .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .lang-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* FILTERS */
+  .filters { max-width: 1000px; margin: 0 auto; padding: 14px 32px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; background: white; cursor: pointer; color: var(--muted); transition: all .15s; letter-spacing: .03em; }
+  .filter-btn:hover { border-color: #999; color: var(--text); }
+  .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* GRID */
+  .grid { max-width: 1000px; margin: 0 auto; padding: 8px 32px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
+  .card { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 20px; cursor: pointer; transition: all .18s; position: relative; }
+  .card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.09); transform: translateY(-2px); }
+  .card.read { opacity: .45; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .cat-tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; padding: 3px 9px; border-radius: 20px; letter-spacing: .05em; }
+  .card-icons { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+  .check { color: #1a7a4a; }
+  .card h3 { font-size: 15px; font-weight: 400; line-height: 1.4; margin-bottom: 8px; }
+  .card p { font-size: 12px; color: var(--muted); line-height: 1.55; font-style: italic; }
+  .card-footer { margin-top: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #ccc; }
+
+  /* MODAL */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; justify-content: center; align-items: center; padding: 16px; }
+  .overlay.open { display: flex; }
+  .modal { background: white; border-radius: 10px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 32px; animation: fadeUp .2s ease; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+  .modal-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
+  .modal-top h2 { font-size: 20px; font-weight: 400; line-height: 1.35; margin-top: 10px; max-width: 90%; }
+  .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); line-height: 1; padding: 0 0 0 12px; flex-shrink: 0; }
+  .close-btn:hover { color: var(--text); }
+  .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0ede8; }
+  .section:last-of-type { border-bottom: none; }
+  .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+  .section p { font-size: 13.5px; line-height: 1.7; color: #444; }
+  .insight-box { background: #fafaf8; border-left: 3px solid var(--accent); padding: 13px 16px; border-radius: 0 5px 5px 0; font-style: italic; font-size: 13.5px; line-height: 1.65; color: #555; }
+  textarea { width: 100%; border: 1px solid var(--border); border-radius: 5px; padding: 11px; font-family: 'Playfair Display', Georgia, serif; font-size: 13px; resize: vertical; min-height: 72px; outline: none; color: var(--text); transition: border-color .15s; }
+  textarea:focus { border-color: #999; }
+  .modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-primary { background: var(--accent); color: white; border: none; padding: 11px 20px; border-radius: 5px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .04em; transition: opacity .15s; }
+  .btn-primary:hover { opacity: .82; }
+  .btn-secondary { background: white; color: #666; border: 1px solid var(--border); padding: 11px 20px; border-radius: 5px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12px; transition: all .15s; }
+  .btn-secondary:hover { border-color: #999; color: var(--text); }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); font-style: italic; font-size: 16px; }
+
+  @media (max-width: 600px) {
+    header { padding: 14px 16px; }
+    .filters, .grid { padding-left: 16px; padding-right: 16px; }
+    h1 { font-size: 20px; }
+    .lang-btn { font-size: 10px; padding: 4px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="eyebrow" data-t="eyebrow">AI CASES JOURNAL</div>
+      <h1 data-t="title">ИИ в действии</h1>
+    </div>
+    <div class="header-right">
+      <div class="progress-block">
+        <div class="progress-count"><span id="readCount">0</span>/<span id="totalCount">0</span></div>
+        <div class="progress-label" data-t="read_label">прочитано</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('he')">HE</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="filters" id="filters"></div>
+<div class="grid" id="grid"></div>
+
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-top">
+      <div>
+        <span id="modal-tag"></span>
+        <h2 id="modal-title"></h2>
+      </div>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="section">
+      <div class="section-label" data-t="goal_label">Цель</div>
+      <p id="modal-goal"></p>
+    </div>
+    <div class="section">
+      <div class="section-label" data-t="how_label">Как это работает</div>
+      <p id="modal-how"></p>
+    </div>
+    <div class="section">
+      <div class="section-label" data-t="result_label">Результат</div>
+      <p id="modal-result"></p>
+    </div>
+    <div class="section">
+      <div class="section-label" data-t="insight_label">Ключевой инсайт</div>
+      <div class="insight-box" id="modal-insight"></div>
+    </div>
+    <div class="section">
+      <div class="section-label" data-t="notes_label">Заметки</div>
+      <textarea id="modal-note" data-t-placeholder="notes_placeholder"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="readBtn" onclick="toggleReadAndClose()"></button>
+      <button class="btn-secondary" onclick="saveNoteAndClose()" data-t="save_note">Сохранить заметку</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── TRANSLATIONS ───────────────────────────────────────────────
+const T = {
+  ru: {
+    eyebrow: "AI CASES JOURNAL",
+    title: "ИИ в действии",
+    read_label: "прочитано",
+    goal_label: "Цель",
+    how_label: "Как это работает",
+    result_label: "Результат",
+    insight_label: "Ключевой инсайт",
+    notes_label: "Заметки",
+    notes_placeholder: "Что зацепило? Как применимо в твоих проектах?",
+    save_note: "Сохранить заметку",
+    mark_read: "Отметить прочитанным →",
+    mark_unread: "Снять отметку",
+    filter_all: "Все",
+    cats: { "Образование": "Образование", "Управление": "Управление", "Продукты": "Продукты", "Госуправление": "Госуправление", "Китай": "Китай 🇨🇳", "Россия": "Россия 🇷🇺" }
+  },
+  en: {
+    eyebrow: "AI CASES JOURNAL",
+    title: "AI in Action",
+    read_label: "read",
+    goal_label: "Goal",
+    how_label: "How it works",
+    result_label: "Result",
+    insight_label: "Key insight",
+    notes_label: "Notes",
+    notes_placeholder: "What caught your attention? How does it apply to your projects?",
+    save_note: "Save note",
+    mark_read: "Mark as read →",
+    mark_unread: "Remove mark",
+    filter_all: "All",
+    cats: { "Образование": "Education", "Управление": "Management", "Продукты": "Products", "Госуправление": "Gov & Policy", "Китай": "China 🇨🇳", "Россия": "Russia 🇷🇺" }
+  },
+  he: {
+    eyebrow: "יומן מקרי AI",
+    title: "בינה מלאכותית בפעולה",
+    read_label: "נקראו",
+    goal_label: "מטרה",
+    how_label: "איך זה עובד",
+    result_label: "תוצאות",
+    insight_label: "תובנה מרכזית",
+    notes_label: "הערות",
+    notes_placeholder: "מה תפס את תשומת לבך? איך ניתן ליישם זאת בפרויקטים שלך?",
+    save_note: "שמור הערה",
+    mark_read: "סמן כנקרא →",
+    mark_unread: "הסר סימון",
+    filter_all: "הכל",
+    cats: { "Образование": "חינוך", "Управление": "ניהול", "Продукты": "מוצרים", "Госуправление": "ממשל", "Китай": "סין 🇨🇳", "Россия": "רוסיה 🇷🇺" }
+  }
+};
+
+// ─── CASES DATA ──────────────────────────────────────────────────
+const CASES = [
+  {
+    id: 1, cat: "Образование", tag: "🎓", year: "2023–2024",
+    ru: { title: "Khan Academy — репетитор Khanmigo", goal: "Дать каждому ученику персонального репетитора, который ведёт к пониманию через вопросы, а не даёт готовые ответы.", how: "GPT-4 встроен с жёстким промптом: никогда не решать задачу за ученика. Только наводящие вопросы, анализ паттернов ошибок, адаптация сложности объяснения. Учитель получает дашборд: кто застрял и на чём.", result: "Пилот в 500+ школах США. Ученики, занимавшиеся с Khanmigo 30+ минут в неделю, показали +18% в тестах по математике по сравнению с контрольной группой.", insight: "ИИ как Сократ: ценность не в ответе, а в методе вопрошания." },
+    en: { title: "Khan Academy — Khanmigo Tutor", goal: "Give every student a personal tutor that guides understanding through questions rather than providing direct answers.", how: "GPT-4 is embedded with a strict prompt: never solve the task for the student. Only guiding questions, error pattern analysis, adaptive explanations. Teachers get a dashboard showing who is stuck and where.", result: "Pilot in 500+ US schools. Students using Khanmigo 30+ min/week scored 18% higher in math tests vs. control group.", insight: "AI as Socrates: the value lies not in the answer, but in the method of questioning." },
+    he: { title: "Khan Academy — מדריך Khanmigo", goal: "לתת לכל תלמיד מדריך אישי שמוביל להבנה דרך שאלות, במקום לספק תשובות מוכנות.", how: "GPT-4 משובץ עם הנחיה נוקשה: לעולם לא לפתור את המשימה עבור התלמיד. רק שאלות מנחות, ניתוח דפוסי שגיאות, התאמת רמת ההסבר. המורה מקבל לוח בקרה שמראה מי תקוע והיכן.", result: "פיילוט ב-500+ בתי ספר בארה\"ב. תלמידים שעבדו עם Khanmigo 30+ דקות בשבוע הראו +18% במבחני מתמטיקה.", insight: "AI כסוקרטס: הערך אינו בתשובה, אלא בשיטת השאלות." }
+  },
+  {
+    id: 2, cat: "Управление", tag: "⚙️", year: "2024",
+    ru: { title: "Klarna — ИИ вместо 700 сотрудников поддержки", goal: "Снизить стоимость клиентской поддержки и ускорить ответы без потери качества.", how: "ИИ-агент обучен на миллионах диалогов поддержки. Имеет доступ к данным клиента, истории транзакций и политикам компании. Решает задачу сам — эскалирует к человеку только при нестандартных или эмоционально сложных случаях.", result: "Агент обрабатывает 2/3 всех обращений. Среднее время решения: 2 минуты vs 11 минут у людей. Экономия эквивалент 700 сотрудников (~$40M/год).", insight: "Ключ — чёткое разграничение: что автоматизировать, а что оставить людям." },
+    en: { title: "Klarna — AI Replacing 700 Support Agents", goal: "Reduce customer support costs and speed up responses without losing quality.", how: "AI agent trained on millions of support conversations. Has access to customer data, transaction history, and company policies. Resolves issues independently — escalates to humans only for unusual or emotionally complex cases.", result: "The agent handles 2/3 of all inquiries. Average resolution time: 2 min vs 11 min for humans. Savings equivalent to 700 employees (~$40M/year).", insight: "The key is clear delineation: what to automate and what to leave to humans." },
+    he: { title: "Klarna — AI במקום 700 נציגי תמיכה", goal: "להפחית את עלויות תמיכת הלקוחות ולהאיץ תגובות מבלי לאבד איכות.", how: "סוכן AI שהוכשר על מיליוני שיחות תמיכה. יש לו גישה לנתוני לקוח, היסטוריית עסקאות ומדיניות החברה. פותר בעיות בעצמו — מסלים לאדם רק במקרים חריגים.", result: "הסוכן מטפל ב-2/3 מכלל הפניות. זמן פתרון ממוצע: 2 דקות לעומת 11 דקות בבני אדם. חיסכון שווה ערך ל-700 עובדים (~$40M בשנה).", insight: "המפתח הוא הגדרה ברורה: מה לאוטומט ומה להשאיר לבני אדם." }
+  },
+  {
+    id: 3, cat: "Продукты", tag: "🚀", year: "2023",
+    ru: { title: "Notion AI — написание и структурирование", goal: "Превратить Notion из инструмента хранения информации в инструмент её производства.", how: "ИИ встроен прямо в редактор как контекстный ассистент. Видит документ, знает его структуру, продолжает текст, создаёт summary, переформатирует, переводит. Запускается командой / — не прерывает поток работы.", result: "1 млн пользователей Notion AI за первые 3 месяца. Retention пользователей с AI-фичами на 30% выше.", insight: "Встроенный ИИ удерживает лучше, чем ИИ как отдельный продукт — контекст решает всё." },
+    en: { title: "Notion AI — Writing & Structuring", goal: "Transform Notion from an information storage tool into a content production tool.", how: "AI is embedded directly in the editor as a contextual assistant. Sees the document, understands its structure, continues text, creates summaries, reformats, translates. Triggered by / command — doesn't interrupt workflow.", result: "1 million Notion AI users in first 3 months. Retention of users with AI features is 30% higher.", insight: "Embedded AI retains users better than AI as a separate product — context is everything." },
+    he: { title: "Notion AI — כתיבה ומבנה", goal: "להפוך את Notion מכלי אחסון מידע לכלי ייצור תוכן.", how: "AI משובץ ישירות בעורך כעוזר הקשרי. רואה את המסמך, מבין את מבנהו, ממשיך טקסט, יוצר סיכומים, מעצב מחדש, מתרגם. מופעל בפקודת / — לא מפריע לזרימת העבודה.", result: "מיליון משתמשי Notion AI בשלושת החודשים הראשונים. שימור משתמשים עם תכונות AI גבוה ב-30%.", insight: "AI משובץ משמר משתמשים טוב יותר מאשר AI כמוצר נפרד — ההקשר הוא הכל." }
+  },
+  {
+    id: 4, cat: "Госуправление", tag: "🏛️", year: "2024",
+    ru: { title: "Эстония — ИИ-юрист для граждан", goal: "Снизить барьер доступа граждан к юридической информации и уменьшить нагрузку на госорганы.", how: "ИИ-ассистент интегрирован в портал госуслуг. Обучен на всей правовой базе страны. Объясняет законы простым языком, помогает заполнить форму, указывает в какой орган обратиться и что принести.", result: "Снижение «бессмысленных» обращений в ведомства на 24%. Граждане приходят подготовленными. Особенно востребовано среди пенсионеров и мигрантов.", insight: "ИИ как переводчик между бюрократическим языком и человеческим — огромная социальная ценность." },
+    en: { title: "Estonia — AI Lawyer for Citizens", goal: "Lower the barrier to legal information access and reduce government workload.", how: "AI assistant integrated into the government services portal. Trained on the entire national legal framework. Explains laws in plain language, helps fill out forms, indicates which office to contact and what documents to bring.", result: "24% reduction in 'pointless' agency visits. Citizens arrive prepared. Especially popular among retirees and migrants.", insight: "AI as a translator between bureaucratic and human language — enormous social value." },
+    he: { title: "אסטוניה — עורך דין AI לאזרחים", goal: "להוריד את המחסום לגישה למידע משפטי ולהפחית את העומס על הרשויות הממשלתיות.", how: "עוזר AI משולב בפורטל שירותי הממשל. הוכשר על כל המסגרת המשפטית הלאומית. מסביר חוקים בשפה פשוטה, עוזר למלא טפסים, מציין לאיזה משרד לפנות ואילו מסמכים להביא.", result: "ירידה של 24% בביקורים 'חסרי טעם' ברשויות. אזרחים מגיעים מוכנים. פופולרי במיוחד בקרב קשישים ומהגרים.", insight: "AI כמתרגם בין שפה ביורוקרטית לשפה אנושית — ערך חברתי עצום." }
+  },
+  {
+    id: 5, cat: "Продукты", tag: "🚀", year: "2022–2023",
+    ru: { title: "GitHub Copilot — парный программист", goal: "Ускорить написание кода и снизить когнитивную нагрузку разработчика.", how: "LLM обучена на миллиардах строк публичного кода. Встроена в IDE как inline-подсказки прямо в месте курсора. Видит весь контекст файла и предлагает следующие строки — не чат, не отдельное окно.", result: "Разработчики принимают ~30% предложений. Задачи выполняются на 55% быстрее. 1.5 млн платных подписчиков за первый год.", insight: "Встроить ИИ в поток работы, а не рядом с ним — это удваивает adoption." },
+    en: { title: "GitHub Copilot — Pair Programmer", goal: "Speed up code writing and reduce developer cognitive load.", how: "LLM trained on billions of lines of public code. Embedded in the IDE as inline suggestions at the cursor position. Sees entire file context and suggests next lines — not a chat, not a separate window.", result: "Developers accept ~30% of suggestions. Tasks completed 55% faster. 1.5M paid subscribers in first year.", insight: "Embed AI into the workflow, not alongside it — this doubles adoption." },
+    he: { title: "GitHub Copilot — מתכנת זוגי", goal: "להאיץ כתיבת קוד ולהפחית עומס קוגניטיבי על מפתחים.", how: "LLM שהוכשר על מיליארדי שורות קוד ציבורי. משובץ ב-IDE כהצעות inline במיקום הסמן. רואה את כל הקשר הקובץ ומציע שורות הבאות — לא צ'אט, לא חלון נפרד.", result: "מפתחים מקבלים ~30% מההצעות. משימות מושלמות מהר ב-55%. 1.5 מיליון מנויים משלמים בשנה הראשונה.", insight: "לשלב AI בזרימת העבודה, לא לצידה — זה מכפיל את האימוץ." }
+  },
+  {
+    id: 6, cat: "Управление", tag: "⚙️", year: "2023",
+    ru: { title: "Spotify — ИИ для поиска перспективных артистов", goal: "Помочь A&R менеджерам находить перспективных музыкантов раньше, чем они становятся мейнстримом.", how: "Система анализирует паттерны прослушивания, темп роста артиста, географию слушателей и плейлист-активность. Выдаёт менеджеру short-list с объяснением: паттерн роста похож на ранний Billie Eilish.", result: "Скорость обнаружения pre-breakout артистов выросла вдвое. Менеджеры тратят больше времени на отношения, меньше — на поиск.", insight: "ИИ не заменяет суждение эксперта — он убирает иголку в стоге сена." },
+    en: { title: "Spotify — AI for Artist Discovery", goal: "Help A&R managers find promising musicians before they break into the mainstream.", how: "System analyzes listening patterns, artist growth rate, listener geography, and playlist activity. Gives managers a short-list with explanations: growth pattern resembles early Billie Eilish.", result: "Speed of discovering pre-breakout artists doubled. Managers spend more time on relationships, less on searching.", insight: "AI doesn't replace expert judgment — it removes the needle from the haystack." },
+    he: { title: "Spotify — AI לגילוי אמנים", goal: "לעזור למנהלי A&R למצוא מוזיקאים מבטיחים לפני שהם פורצים לזרם המרכזי.", how: "המערכת מנתחת דפוסי האזנה, קצב צמיחת האמן, גיאוגרפיית המאזינים ופעילות פלייליסטים. נותנת למנהלים רשימה קצרה עם הסברים: דפוס הצמיחה דומה ל-Billie Eilish הצעירה.", result: "מהירות גילוי אמנים לפני פריצתם הוכפלה. מנהלים מקדישים יותר זמן לקשרים, פחות לחיפוש.", insight: "AI לא מחליף את שיפוט המומחה — הוא מסיר את המחט מערימת השחת." }
+  },
+  {
+    id: 7, cat: "Госуправление", tag: "🏛️", year: "2023",
+    ru: { title: "Сингапур — ИИ для обработки жалоб граждан", goal: "Эффективно обрабатывать тысячи жалоб и направлять их в правильный департамент без потери контекста.", how: "NLP-система читает жалобы, классифицирует по теме (дорога, шум, мусор, безопасность), оценивает срочность, маршрутизирует с резюме и историческим контекстом.", result: "Время маршрутизации: с 3 дней до 4 часов. Ошибки классификации снизились на 60%.", insight: "Административная эффективность — это часто просто классификация информации. ИИ справляется лучше людей." },
+    en: { title: "Singapore — AI for Citizen Complaint Processing", goal: "Efficiently process thousands of complaints and route them to the right department without losing context.", how: "NLP system reads complaints, classifies by topic (roads, noise, waste, safety), evaluates urgency, routes with summary and historical context.", result: "Routing time: from 3 days to 4 hours. Classification errors reduced by 60%.", insight: "Administrative efficiency is often simply information classification. AI does it better than humans." },
+    he: { title: "סינגפור — AI לטיפול בתלונות אזרחים", goal: "לטפל ביעילות באלפי תלונות ולנתב אותן למחלקה הנכונה מבלי לאבד הקשר.", how: "מערכת NLP קוראת תלונות, מסווגת לפי נושא (כבישים, רעש, פסולת, ביטחון), מעריכה דחיפות, מנתבת עם סיכום והקשר היסטורי.", result: "זמן ניתוב: מ-3 ימים ל-4 שעות. שגיאות סיווג ירדו ב-60%.", insight: "יעילות מנהלית היא לעתים קרובות פשוט סיווג מידע. AI עושה זאת טוב יותר מבני אדם." }
+  },
+  {
+    id: 8, cat: "Образование", tag: "🎓", year: "2023–2024",
+    ru: { title: "Duolingo Max — объяснение ошибок с контекстом", goal: "Перейти от «правильно/неправильно» к пониманию — почему ошибка является ошибкой.", how: "Два режима: «Explain My Answer» объясняет грамматику конкретной ошибки, «Roleplay» — живой диалог с AI-персонажем в заданной ситуации: кафе, аэропорт, переговоры.", result: "Пользователи учатся на 40% дольше за сессию. Особенно эффективен для уровней B1–B2, где механическое повторение уже не работает.", insight: "ИИ закрывает разрыв между знанием правила и умением им пользоваться." },
+    en: { title: "Duolingo Max — Contextual Error Explanation", goal: "Move from 'right/wrong' to understanding — why a mistake is a mistake.", how: "Two modes: 'Explain My Answer' explains the grammar of a specific error, 'Roleplay' — live dialogue with an AI character in a set situation: café, airport, negotiation.", result: "Users study 40% longer per session. Especially effective for B1–B2 levels where mechanical repetition no longer works.", insight: "AI bridges the gap between knowing a rule and being able to use it." },
+    he: { title: "Duolingo Max — הסבר שגיאות בהקשר", goal: "לעבור מ'נכון/לא נכון' להבנה — למה טעות היא טעות.", how: "שני מצבים: 'Explain My Answer' מסביר את הדקדוק של שגיאה ספציפית, 'Roleplay' — דיאלוג חי עם דמות AI במצב נתון: בית קפה, שדה תעופה, משא ומתן.", result: "משתמשים לומדים 40% יותר זמן לכל סשן. יעיל במיוחד לרמות B1–B2 שבהן חזרה מכנית כבר לא עובדת.", insight: "AI גשר את הפער בין ידיעת חוק לבין היכולת להשתמש בו." }
+  },
+  {
+    id: 9, cat: "Китай", tag: "🇨🇳", year: "2023–2024",
+    ru: { title: "Baidu ERNIE Bot — ИИ-ассистент для бизнеса", goal: "Создать китайский аналог ChatGPT, адаптированный под регуляторные требования и специфику китайского рынка.", how: "ERNIE Bot обучен на китайскоязычных данных с глубоким пониманием культурного контекста. Интегрирован в экосистему Baidu: поиск, карты, облако. Предприятия используют его для обслуживания клиентов, генерации контента и анализа данных.", result: "100+ млн пользователей за первые месяцы. 85,000 корпоративных клиентов. Baidu зафиксировал рост облачных доходов на 6% благодаря AI-сервисам.", insight: "Локализованный ИИ с пониманием культуры и регуляторики сильнее универсального в конкретном рынке." },
+    en: { title: "Baidu ERNIE Bot — AI Assistant for Business", goal: "Create a Chinese ChatGPT equivalent adapted to regulatory requirements and the Chinese market.", how: "ERNIE Bot trained on Chinese-language data with deep cultural context understanding. Integrated into Baidu's ecosystem: search, maps, cloud. Enterprises use it for customer service, content generation, and data analysis.", result: "100M+ users in first months. 85,000 corporate clients. Baidu recorded 6% cloud revenue growth due to AI services.", insight: "Localized AI with cultural and regulatory understanding outperforms universal AI in a specific market." },
+    he: { title: "Baidu ERNIE Bot — עוזר AI לעסקים", goal: "ליצור מקבילה סינית ל-ChatGPT המותאמת לדרישות רגולטוריות ולשוק הסיני.", how: "ERNIE Bot הוכשר על נתונים בסינית עם הבנה עמוקה של הקשר תרבותי. משולב במערכת האקולוגית של Baidu: חיפוש, מפות, ענן. ארגונים משתמשים בו לשירות לקוחות, ייצור תוכן וניתוח נתונים.", result: "100+ מיליון משתמשים בחודשים הראשונים. 85,000 לקוחות ארגוניים. Baidu רשמה צמיחה של 6% בהכנסות הענן הודות לשירותי AI.", insight: "AI מקומי עם הבנה תרבותית ורגולטורית עולה על AI אוניברסלי בשוק ספציפי." }
+  },
+  {
+    id: 10, cat: "Китай", tag: "🇨🇳", year: "2024",
+    ru: { title: "Zhipu AI — CodeGeeX для разработчиков", goal: "Создать открытый конкурент GitHub Copilot для китайских разработчиков с поддержкой локальных языков и фреймворков.", how: "Модель обучена на коде из китайских репозиториев и поддерживает специфичные для Китая технологии. Распространяется как open-source, что позволяет компаниям запускать локально без передачи кода за рубеж.", result: "5+ млн разработчиков. Встроен в китайские IDE и платформы. Стал де-факто стандартом для компаний, не готовых использовать западные инструменты.", insight: "Суверенность данных — мощный драйвер adoption в странах с регуляторными ограничениями." },
+    en: { title: "Zhipu AI — CodeGeeX for Developers", goal: "Create an open-source GitHub Copilot competitor for Chinese developers with local language and framework support.", how: "Model trained on code from Chinese repositories supporting China-specific technologies. Distributed as open-source, allowing companies to run locally without sending code abroad.", result: "5M+ developers. Integrated into Chinese IDEs and platforms. Became de-facto standard for companies not ready to use Western tools.", insight: "Data sovereignty is a powerful adoption driver in countries with regulatory restrictions." },
+    he: { title: "Zhipu AI — CodeGeeX למפתחים", goal: "ליצור מתחרה קוד פתוח ל-GitHub Copilot למפתחים סינים עם תמיכה בשפות ומסגרות מקומיות.", how: "מודל שהוכשר על קוד ממאגרי מידע סיניים התומך בטכנולוגיות ספציפיות לסין. מופץ כקוד פתוח, מאפשר לחברות להריץ מקומית מבלי לשלוח קוד לחו\"ל.", result: "5+ מיליון מפתחים. משולב ב-IDE ופלטפורמות סיניות. הפך לתקן דה-פקטו לחברות שאינן מוכנות להשתמש בכלים מערביים.", insight: "ריבונות נתונים היא מנוע אימוץ חזק במדינות עם הגבלות רגולטוריות." }
+  },
+  {
+    id: 11, cat: "Россия", tag: "🇷🇺", year: "2023–2024",
+    ru: { title: "Яндекс YandexGPT — ИИ в экосистеме", goal: "Интегрировать генеративный ИИ во все сервисы Яндекса, создав конкурентоспособный продукт внутри российского рынка.", how: "YandexGPT встроен в Яндекс 360 (почта, диск, документы), Алису, поиск и B2B-платформу Yandex Cloud. Компании используют через API для автоматизации документооборота, поддержки и аналитики.", result: "Яндекс стал доминирующей AI-платформой в России. Yandex Cloud с AI-сервисами показал рост выручки 40%+ г/г. Тысячи российских компаний перешли на отечественный стек.", insight: "Встраивание ИИ в уже используемые инструменты — самый короткий путь к массовому adoption." },
+    en: { title: "Yandex YandexGPT — AI Across the Ecosystem", goal: "Integrate generative AI into all Yandex services, creating a competitive product within the Russian market.", how: "YandexGPT integrated into Yandex 360 (mail, disk, docs), Alice voice assistant, search, and B2B platform Yandex Cloud. Companies use the API for document automation, support, and analytics.", result: "Yandex became the dominant AI platform in Russia. Yandex Cloud with AI services showed 40%+ YoY revenue growth. Thousands of Russian companies switched to the domestic stack.", insight: "Embedding AI into already-used tools is the fastest path to mass adoption." },
+    he: { title: "Yandex YandexGPT — AI בכל המערכת האקולוגית", goal: "לשלב AI גנרטיבי בכל שירותי Yandex, ויצירת מוצר תחרותי בתוך השוק הרוסי.", how: "YandexGPT משולב ב-Yandex 360 (דואר, דיסק, מסמכים), עוזרת הקול Alice, חיפוש ופלטפורמת B2B Yandex Cloud. חברות משתמשות ב-API לאוטומציה של מסמכים, תמיכה וניתוח.", result: "Yandex הפכה לפלטפורמת AI הדומיננטית ברוסיה. Yandex Cloud עם שירותי AI הראתה צמיחה של 40%+ בהכנסות שנה על שנה.", insight: "שילוב AI בכלים שכבר בשימוש הוא הדרך המהירה ביותר לאימוץ המוני." }
+  },
+  {
+    id: 12, cat: "Россия", tag: "🇷🇺", year: "2024",
+    ru: { title: "Сбер GigaChat — банковский ИИ-ассистент", goal: "Создать ИИ-ассистента для 100 млн клиентов Сбера, автоматизировав банковские консультации и внутренние процессы.", how: "GigaChat обучен на финансовых данных и интегрирован в приложение СберБанк Онлайн. Отвечает на вопросы о продуктах, помогает с заявками, анализирует расходы. Отдельно — внутренняя версия для 300,000 сотрудников банка.", result: "Автоматизировано 40% обращений в контакт-центр. Внутренний ассистент сэкономил 2+ млн человеко-часов в год. GigaChat стал основой AI-платформы для российского Enterprise.", insight: "Банк с базой данных клиентов и доверием — идеальная платформа для внедрения ИИ в финансовые решения." },
+    en: { title: "Sber GigaChat — Banking AI Assistant", goal: "Create an AI assistant for Sber's 100M customers, automating banking consultations and internal processes.", how: "GigaChat trained on financial data and integrated into the SberBank Online app. Answers product questions, helps with applications, analyzes expenses. Separate internal version for 300,000 bank employees.", result: "40% of contact center inquiries automated. Internal assistant saved 2M+ man-hours per year. GigaChat became the foundation of an AI platform for Russian Enterprise.", insight: "A bank with a customer database and trust is the ideal platform for embedding AI in financial decisions." },
+    he: { title: "Sber GigaChat — עוזר AI בנקאי", goal: "ליצור עוזר AI ל-100 מיליון לקוחות של Sber, תוך אוטומציה של ייעוץ בנקאי ותהליכים פנימיים.", how: "GigaChat הוכשר על נתונים פיננסיים ומשולב באפליקציית SberBank Online. עונה על שאלות מוצר, עוזר בבקשות, מנתח הוצאות. גרסה פנימית נפרדת ל-300,000 עובדי הבנק.", result: "40% מפניות מרכז הקשר אוטומטיות. עוזר פנימי חסך 2+ מיליון שעות עבודה בשנה. GigaChat הפך לבסיס של פלטפורמת AI לארגונים רוסים.", insight: "בנק עם מסד נתוני לקוחות ואמון הוא הפלטפורמה האידיאלית לשילוב AI בהחלטות פיננסיות." }
+  }
+];
+
+// ─── STATE ───────────────────────────────────────────────────────
+let lang = 'ru';
+let filter = 'all';
+let currentCase = null;
+const STORAGE_READ = 'aicj_read';
+const STORAGE_NOTES = 'aicj_notes';
+
+function getRead() { try { return JSON.parse(localStorage.getItem(STORAGE_READ) || '[]'); } catch { return []; } }
+function getNotes() { try { return JSON.parse(localStorage.getItem(STORAGE_NOTES) || '{}'); } catch { return {}; } }
+function saveRead(arr) { localStorage.setItem(STORAGE_READ, JSON.stringify(arr)); }
+function saveNotes(obj) { localStorage.setItem(STORAGE_NOTES, JSON.stringify(obj)); }
+
+// ─── CATEGORIES ──────────────────────────────────────────────────
+const CAT_STYLE = {
+  "Образование": { color: 'var(--edu-c)', bg: 'var(--edu-bg)' },
+  "Управление":  { color: 'var(--mgmt-c)', bg: 'var(--mgmt-bg)' },
+  "Продукты":    { color: 'var(--prod-c)', bg: 'var(--prod-bg)' },
+  "Госуправление": { color: 'var(--gov-c)', bg: 'var(--gov-bg)' },
+  "Китай":       { color: 'var(--cn-c)', bg: '#fff0f0' },
+  "Россия":      { color: 'var(--ru-c)', bg: '#eef4fe' },
+};
+
+// ─── RENDER ──────────────────────────────────────────────────────
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent === l.toUpperCase()));
+  document.documentElement.lang = l;
+  document.body.setAttribute('dir', l === 'he' ? 'rtl' : 'ltr');
+  updateTranslations();
+  renderFilters();
+  renderGrid();
+  updateProgress();
+}
+
+function updateTranslations() {
+  const t = T[lang];
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const key = el.dataset.t;
+    if (t[key]) el.textContent = t[key];
+  });
+  document.querySelectorAll('[data-t-placeholder]').forEach(el => {
+    const key = el.dataset.tPlaceholder;
+    if (t[key]) el.placeholder = t[key];
+  });
+}
+
+function renderFilters() {
+  const t = T[lang];
+  const cats = ['all', ...new Set(CASES.map(c => c.cat))];
+  const el = document.getElementById('filters');
+  el.innerHTML = cats.map(cat => {
+    const label = cat === 'all' ? t.filter_all : (t.cats[cat] || cat);
+    return `<button class="filter-btn${filter === cat ? ' active' : ''}" onclick="setFilter('${cat}')">${label}</button>`;
+  }).join('');
+}
+
+function setFilter(f) {
+  filter = f;
+  renderFilters();
+  renderGrid();
+}
+
+function renderGrid() {
+  const t = T[lang];
+  const read = getRead();
+  const notes = getNotes();
+  const filtered = filter === 'all' ? CASES : CASES.filter(c => c.cat === filter);
+  const el = document.getElementById('grid');
+  if (!filtered.length) { el.innerHTML = '<div class="empty">No cases found.</div>'; return; }
+  el.innerHTML = filtered.map(c => {
+    const d = c[lang] || c.ru;
+    const st = CAT_STYLE[c.cat] || {};
+    const isRead = read.includes(c.id);
+    const hasNote = !!notes[c.id];
+    const catLabel = t.cats[c.cat] || c.cat;
+    return `
+      <div class="card${isRead ? ' read' : ''}" onclick="openModal(${c.id})">
+        <div class="card-top">
+          <span class="cat-tag" style="background:${st.bg};color:${st.color}">${c.tag} ${catLabel}</span>
+          <div class="card-icons">
+            ${hasNote ? '<span title="has note">📝</span>' : ''}
+            ${isRead ? '<span class="check">✓</span>' : ''}
+          </div>
+        </div>
+        <h3>${d.title}</h3>
+        <p>${d.goal.slice(0, 80)}…</p>
+        <div class="card-footer">${c.year}</div>
+      </div>`;
+  }).join('');
+}
+
+function updateProgress() {
+  const read = getRead();
+  const n = read.length;
+  const total = CASES.length;
+  const pct = Math.round((n / total) * 100);
+  document.getElementById('readCount').textContent = n;
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────
+function openModal(id) {
+  currentCase = CASES.find(c => c.id === id);
+  if (!currentCase) return;
+  const t = T[lang];
+  const d = currentCase[lang] || currentCase.ru;
+  const st = CAT_STYLE[currentCase.cat] || {};
+  const read = getRead();
+  const notes = getNotes();
+  const catLabel = t.cats[currentCase.cat] || currentCase.cat;
+
+  document.getElementById('modal-tag').innerHTML = `<span class="cat-tag" style="background:${st.bg};color:${st.color};display:inline-block;margin-bottom:8px">${currentCase.tag} ${catLabel} · ${currentCase.year}</span>`;
+  document.getElementById('modal-title').textContent = d.title;
+  document.getElementById('modal-goal').textContent = d.goal;
+  document.getElementById('modal-how').textContent = d.how;
+  document.getElementById('modal-result').textContent = d.result;
+  document.getElementById('modal-insight').textContent = d.insight;
+  document.getElementById('modal-note').value = notes[id] || '';
+  document.getElementById('modal-note').placeholder = t.notes_placeholder;
+
+  const readBtn = document.getElementById('readBtn');
+  readBtn.textContent = read.includes(id) ? t.mark_unread : t.mark_read;
+
+  // update labels
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const key = el.dataset.t;
+    if (T[lang][key]) el.textContent = T[lang][key];
+  });
+
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentCase = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function saveCurrentNote() {
+  if (!currentCase) return;
+  const note = document.getElementById('modal-note').value.trim();
+  const notes = getNotes();
+  if (note) notes[currentCase.id] = note;
+  else delete notes[currentCase.id];
+  saveNotes(notes);
+}
+
+function toggleReadAndClose() {
+  if (!currentCase) return;
+  saveCurrentNote();
+  const read = getRead();
+  const idx = read.indexOf(currentCase.id);
+  if (idx >= 0) read.splice(idx, 1);
+  else read.push(currentCase.id);
+  saveRead(read);
+  updateProgress();
+  renderGrid();
+  closeModal();
+}
+
+function saveNoteAndClose() {
+  saveCurrentNote();
+  renderGrid();
+  closeModal();
+}
+
+// keyboard close
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ─── INIT ────────────────────────────────────────────────────────
+updateTranslations();
+renderFilters();
+renderGrid();
+updateProgress();
+</script>
+</body>
+</html>
