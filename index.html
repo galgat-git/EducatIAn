@@ -117,9 +117,9 @@
 <div class="welcome-overlay" id="welcomeScreen">
   <div class="welcome-box">
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px;gap:4px">
-      <button class="lang-btn active" onclick="setLang('ru');updateWelcome()">RU</button>
-      <button class="lang-btn" onclick="setLang('en');updateWelcome()">EN</button>
-      <button class="lang-btn" onclick="setLang('he');updateWelcome()">HE</button>
+      <button class="lang-btn active" id="wlang-ru" onclick="switchWelcomeLang('ru')">RU</button>
+      <button class="lang-btn" id="wlang-en" onclick="switchWelcomeLang('en')">EN</button>
+      <button class="lang-btn" id="wlang-he" onclick="switchWelcomeLang('he')">HE</button>
     </div>
     <div class="eyebrow">AI CASES JOURNAL</div>
     <h2 id="welcome-title">Добро пожаловать</h2>
@@ -127,7 +127,7 @@
     <input class="welcome-input" id="nameInput" type="text" placeholder="Имя и фамилия" maxlength="60" style="margin-bottom:10px" />
     <input class="welcome-input" id="emailInput" type="email" placeholder="Email" maxlength="100" style="margin-bottom:14px" />
     <button class="welcome-btn" id="startBtn" onclick="startJournal()" disabled>Начать →</button>
-    <button onclick="skipRegistration()" style="background:none;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;margin-top:12px;text-decoration:underline;text-underline-offset:3px" id="skipBtn">Войти без регистрации</button>
+    <button onclick="skipRegistration()" id="skipBtn" style="background:none;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;margin-top:12px;text-decoration:underline;text-underline-offset:3px;display:block;width:100%;padding:6px 0" onmouseover="this.style.color='#1a1814'" onmouseout="this.style.color='var(--muted)'">Войти без регистрации</button>
   </div>
 </div>
 
@@ -536,6 +536,17 @@ function setLang(l) {
   renderFilters();
   renderGrid();
   updateProgress();
+}
+
+function switchWelcomeLang(l) {
+  lang = l;
+  // update header lang buttons too
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === l.toUpperCase());
+  });
+  document.body.setAttribute('dir', l === 'he' ? 'rtl' : 'ltr');
+  document.documentElement.lang = l;
+  updateWelcome();
 }
 
 function updateWelcome() {
