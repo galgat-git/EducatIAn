@@ -86,6 +86,23 @@
   /* EMPTY */
   .empty { text-align: center; padding: 60px 20px; color: var(--muted); font-style: italic; font-size: 16px; }
 
+  /* WELCOME SCREEN */
+  .welcome-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .welcome-box { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 40px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,.08); }
+  .welcome-box .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; }
+  .welcome-box h2 { font-size: 26px; font-weight: 400; margin-bottom: 10px; }
+  .welcome-box p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 28px; font-style: italic; }
+  .welcome-input { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: 'Playfair Display', Georgia, serif; font-size: 15px; outline: none; text-align: center; transition: border-color .15s; margin-bottom: 14px; }
+  .welcome-input:focus { border-color: var(--accent); }
+  .welcome-btn { width: 100%; background: var(--accent); color: white; border: none; padding: 13px; border-radius: 6px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: .05em; transition: opacity .15s; }
+  .welcome-btn:hover { opacity: .82; }
+  .welcome-btn:disabled { opacity: .4; cursor: default; }
+  /* USER BADGE */
+  .user-badge { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); cursor: pointer; border: 1px solid var(--border); padding: 5px 11px; border-radius: 20px; background: white; transition: all .15s; white-space: nowrap; }
+  .user-badge:hover { border-color: #c00; color: #c00; }
+  /* SYNC BANNER */
+  #sync-banner { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1814; color: white; padding: 8px 18px; border-radius: 20px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; z-index: 300; transition: opacity .3s; pointer-events: none; }
+
   @media (max-width: 600px) {
     header { padding: 14px 16px; }
     .filters, .grid { padding-left: 16px; padding-right: 16px; }
@@ -96,11 +113,29 @@
 </head>
 <body>
 
+<!-- WELCOME SCREEN -->
+<div class="welcome-overlay" id="welcomeScreen">
+  <div class="welcome-box">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px;gap:4px">
+      <button class="lang-btn active" onclick="setLang('ru');updateWelcome()">RU</button>
+      <button class="lang-btn" onclick="setLang('en');updateWelcome()">EN</button>
+      <button class="lang-btn" onclick="setLang('he');updateWelcome()">HE</button>
+    </div>
+    <div class="eyebrow">AI CASES JOURNAL</div>
+    <h2 id="welcome-title">Добро пожаловать</h2>
+    <p id="welcome-desc">Введи своё имя и адрес почты — мы сохраним твой прогресс и заметки, чтобы они были доступны с любого устройства.</p>
+    <input class="welcome-input" id="nameInput" type="text" placeholder="Имя и фамилия" maxlength="60" style="margin-bottom:10px" />
+    <input class="welcome-input" id="emailInput" type="email" placeholder="Email" maxlength="100" />
+    <button class="welcome-btn" id="startBtn" onclick="startJournal()" disabled>Начать →</button>
+  </div>
+</div>
+
 <header>
   <div class="header-inner">
     <div class="header-left">
       <div class="eyebrow" data-t="eyebrow">AI CASES JOURNAL</div>
       <h1 data-t="title">ИИ в действии</h1>
+      <div id="content-date" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;"></div>
     </div>
     <div class="header-right">
       <div class="progress-block">
@@ -108,6 +143,7 @@
         <div class="progress-label" data-t="read_label">прочитано</div>
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       </div>
+      <button class="user-badge" id="userBadge" onclick="resetUser()" style="display:none" title="Сменить пользователя">👤 <span id="userName"></span> ×</button>
       <div class="lang-switcher">
         <button class="lang-btn active" onclick="setLang('ru')">RU</button>
         <button class="lang-btn" onclick="setLang('en')">EN</button>
@@ -145,6 +181,14 @@
       <div class="section-label" data-t="insight_label">Ключевой инсайт</div>
       <div class="insight-box" id="modal-insight"></div>
     </div>
+    <div class="section" id="modal-limits-section" style="display:none">
+      <div class="section-label" data-t="limits_label">⚠ Ограничения</div>
+      <p id="modal-limits" style="font-size:13.5px;line-height:1.7;color:#9a5a2a"></p>
+    </div>
+    <div class="section" id="modal-source-section" style="display:none;padding-bottom:10px">
+      <div class="section-label" data-t="source_label">Источник</div>
+      <a id="modal-source-link" href="#" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);word-break:break-all;text-decoration:underline;text-underline-offset:3px"></a>
+    </div>
     <div class="section">
       <div class="section-label" data-t="notes_label">Заметки</div>
       <textarea id="modal-note" data-t-placeholder="notes_placeholder"></textarea>
@@ -162,12 +206,20 @@ const T = {
   ru: {
     eyebrow: "AI CASES JOURNAL",
     title: "ИИ в действии",
+    updated_label: "база обновлена",
     read_label: "прочитано",
     goal_label: "Цель",
     how_label: "Как это работает",
     result_label: "Результат",
     insight_label: "Ключевой инсайт",
+    limits_label: "⚠ Ограничения",
+    source_label: "Источник",
     notes_label: "Заметки",
+    welcome_title: "Добро пожаловать",
+    welcome_desc: "Введи своё имя и адрес почты — мы сохраним твой прогресс и заметки, чтобы они были доступны с любого устройства.",
+    welcome_name: "Имя и фамилия",
+    welcome_email: "Email",
+    welcome_btn: "Начать →",
     notes_placeholder: "Что зацепило? Как применимо в твоих проектах?",
     save_note: "Сохранить заметку",
     mark_read: "Отметить прочитанным →",
@@ -178,12 +230,20 @@ const T = {
   en: {
     eyebrow: "AI CASES JOURNAL",
     title: "AI in Action",
+    updated_label: "content updated",
     read_label: "read",
     goal_label: "Goal",
     how_label: "How it works",
     result_label: "Result",
     insight_label: "Key insight",
+    limits_label: "⚠ Limitations",
+    source_label: "Source",
     notes_label: "Notes",
+    welcome_title: "Welcome",
+    welcome_desc: "Enter your name and email — we'll save your progress and notes so they're accessible from any device.",
+    welcome_name: "Full name",
+    welcome_email: "Email",
+    welcome_btn: "Get started →",
     notes_placeholder: "What caught your attention? How does it apply to your projects?",
     save_note: "Save note",
     mark_read: "Mark as read →",
@@ -194,12 +254,20 @@ const T = {
   he: {
     eyebrow: "יומן מקרי AI",
     title: "בינה מלאכותית בפעולה",
+    updated_label: "עודכן",
     read_label: "נקראו",
     goal_label: "מטרה",
     how_label: "איך זה עובד",
     result_label: "תוצאות",
     insight_label: "תובנה מרכזית",
+    limits_label: "⚠ מגבלות",
+    source_label: "מקור",
     notes_label: "הערות",
+    welcome_title: "ברוכים הבאים",
+    welcome_desc: "הכנס את שמך וכתובת המייל שלך — נשמור את ההתקדמות וההערות שלך כדי שיהיו נגישים מכל מכשיר.",
+    welcome_name: "שם מלא",
+    welcome_email: "אימייל",
+    welcome_btn: "להתחיל →",
     notes_placeholder: "מה תפס את תשומת לבך? איך ניתן ליישם זאת בפרויקטים שלך?",
     save_note: "שמור הערה",
     mark_read: "סמן כנקרא →",
@@ -212,16 +280,60 @@ const T = {
 // ─── CASES DATA ──────────────────────────────────────────────────
 const CASES = [
   {
-    id: 1, cat: "Образование", tag: "🎓", year: "2023–2024",
-    ru: { title: "Khan Academy — репетитор Khanmigo", goal: "Дать каждому ученику персонального репетитора, который ведёт к пониманию через вопросы, а не даёт готовые ответы.", how: "GPT-4 встроен с жёстким промптом: никогда не решать задачу за ученика. Только наводящие вопросы, анализ паттернов ошибок, адаптация сложности объяснения. Учитель получает дашборд: кто застрял и на чём.", result: "Пилот в 500+ школах США. Ученики, занимавшиеся с Khanmigo 30+ минут в неделю, показали +18% в тестах по математике по сравнению с контрольной группой.", insight: "ИИ как Сократ: ценность не в ответе, а в методе вопрошания." },
-    en: { title: "Khan Academy — Khanmigo Tutor", goal: "Give every student a personal tutor that guides understanding through questions rather than providing direct answers.", how: "GPT-4 is embedded with a strict prompt: never solve the task for the student. Only guiding questions, error pattern analysis, adaptive explanations. Teachers get a dashboard showing who is stuck and where.", result: "Pilot in 500+ US schools. Students using Khanmigo 30+ min/week scored 18% higher in math tests vs. control group.", insight: "AI as Socrates: the value lies not in the answer, but in the method of questioning." },
-    he: { title: "Khan Academy — מדריך Khanmigo", goal: "לתת לכל תלמיד מדריך אישי שמוביל להבנה דרך שאלות, במקום לספק תשובות מוכנות.", how: "GPT-4 משובץ עם הנחיה נוקשה: לעולם לא לפתור את המשימה עבור התלמיד. רק שאלות מנחות, ניתוח דפוסי שגיאות, התאמת רמת ההסבר. המורה מקבל לוח בקרה שמראה מי תקוע והיכן.", result: "פיילוט ב-500+ בתי ספר בארה\"ב. תלמידים שעבדו עם Khanmigo 30+ דקות בשבוע הראו +18% במבחני מתמטיקה.", insight: "AI כסוקרטס: הערך אינו בתשובה, אלא בשיטת השאלות." }
+    id: 1, cat: "Образование", tag: "🎓", year: "2023–2025",
+    source: "https://blog.khanacademy.org/khan-academy-efficacy-results-november-2024/",
+    ru: {
+      title: "Khan Academy — репетитор Khanmigo",
+      goal: "Дать каждому ученику персонального репетитора, который ведёт к пониманию через вопросы, а не даёт готовые ответы.",
+      how: "Khanmigo работает на GPT-4 и встроен в платформу Khan Academy с жёстким промптом: никогда не решать задачу за ученика — только наводящие вопросы. Для учеников: тьюторинг по любому упражнению и видео Khan Academy, написание эссе с обратной связью, подготовка к поступлению в колледж, помощь в программировании. Для учителей: создание планов уроков за минуты вместо часов, генерация рубрик, групп учеников, «хуков» для занятий, резюме прогресса класса. Есть голосовой ввод и озвучивание ответов. Доступ для детей только через родительский аккаунт или школьный округ.",
+      result: "Ученики, использующие Khan Academy 30+ минут в неделю (18+ часов в год), показывают ~20% больший рост знаний по стандартизированным тестам. Khanmigo вырос с 68,000 пользователей в 2023–24 до 700,000 в 2024–25 учебном году (рост 731%). Число партнёрских округов выросло с 45 до 380+.",
+      limits: "Доступен только в США (платный, $4/мес для родителей). Доступ детям — только через родителей или школьный округ. Учителя не могут самостоятельно дать доступ ученикам. Главная проблема — вовлечённость: часть учеников отвечает «не знаю» вместо попытки думать. Нет независимых исследований по Khanmigo — только внутренние данные Khan Academy.",
+      insight: "ИИ как Сократ: ценность не в ответе, а в методе вопрошания. Но технология работает только если ученик готов думать."
+    },
+    en: {
+      title: "Khan Academy — Khanmigo AI Tutor",
+      goal: "Give every student a personal tutor that guides understanding through questions rather than providing direct answers.",
+      how: "Khanmigo runs on GPT-4 and is embedded in Khan Academy with a strict prompt: never solve for the student — only ask guiding questions. For students: tutoring on any exercise or video, essay writing with feedback, college prep coaching, coding help. For teachers: lesson plans in minutes, rubric generation, student grouping, progress summaries. Has voice input and text-to-speech. Children access only via parent account or school district.",
+      result: "Students using Khan Academy 30+ min/week (18+ hours/year) show ~20% greater learning gains on standardized tests. Khanmigo grew from 68,000 users in 2023–24 to 700,000 in 2024–25 (731% growth). District partners grew from 45 to 380+.",
+      limits: "US only (paid, $4/month for parents). Children access only via parents or school district — teachers cannot grant access independently. Main challenge: engagement — some students respond 'I don't know' instead of trying. No independent research on Khanmigo specifically, only internal Khan Academy data.",
+      insight: "AI as Socrates: the value is not in the answer but in the method of questioning. But it only works if the student is willing to think."
+    },
+    he: {
+      title: "Khan Academy — מורה פרטי Khanmigo",
+      goal: "לתת לכל תלמיד מורה פרטי שמוביל להבנה דרך שאלות, במקום לספק תשובות מוכנות.",
+      how: "Khanmigo פועל על GPT-4 ומשובץ ב-Khan Academy עם הנחיה נוקשה: לעולם לא לפתור עבור התלמיד — רק לשאול שאלות מנחות. לתלמידים: שיעורים פרטיים בכל תרגיל ווידאו, כתיבת חיבורים עם משוב, הכנה ללימודים גבוהים, עזרה בתכנות. למורים: תכניות שיעור בדקות, יצירת מחוונים, קיבוץ תלמידים, סיכומי התקדמות. יש קלט קולי וקריאה קולית. ילדים ניגשים רק דרך חשבון הורים או מחוז בית ספר.",
+      result: "תלמידים המשתמשים ב-Khan Academy 30+ דקות בשבוע (18+ שעות בשנה) מראים ~20% צמיחה גדולה יותר במבחנים. Khanmigo גדל מ-68,000 משתמשים ב-2023–24 ל-700,000 ב-2024–25 (צמיחה של 731%). שותפי מחוז גדלו מ-45 ל-380+.",
+      limits: "זמין בארה\"ב בלבד (בתשלום, $4/חודש להורים). ילדים ניגשים רק דרך הורים או מחוז בית ספר. אתגר מרכזי: מעורבות — חלק מהתלמידים עונים 'אני לא יודע' במקום לנסות. אין מחקר עצמאי על Khanmigo ספציפית, רק נתונים פנימיים של Khan Academy.",
+      insight: "AI כסוקרטס: הערך אינו בתשובה אלא בשיטת השאלות. אבל זה עובד רק אם התלמיד מוכן לחשוב."
+    }
   },
   {
-    id: 2, cat: "Управление", tag: "⚙️", year: "2024",
-    ru: { title: "Klarna — ИИ вместо 700 сотрудников поддержки", goal: "Снизить стоимость клиентской поддержки и ускорить ответы без потери качества.", how: "ИИ-агент обучен на миллионах диалогов поддержки. Имеет доступ к данным клиента, истории транзакций и политикам компании. Решает задачу сам — эскалирует к человеку только при нестандартных или эмоционально сложных случаях.", result: "Агент обрабатывает 2/3 всех обращений. Среднее время решения: 2 минуты vs 11 минут у людей. Экономия эквивалент 700 сотрудников (~$40M/год).", insight: "Ключ — чёткое разграничение: что автоматизировать, а что оставить людям." },
-    en: { title: "Klarna — AI Replacing 700 Support Agents", goal: "Reduce customer support costs and speed up responses without losing quality.", how: "AI agent trained on millions of support conversations. Has access to customer data, transaction history, and company policies. Resolves issues independently — escalates to humans only for unusual or emotionally complex cases.", result: "The agent handles 2/3 of all inquiries. Average resolution time: 2 min vs 11 min for humans. Savings equivalent to 700 employees (~$40M/year).", insight: "The key is clear delineation: what to automate and what to leave to humans." },
-    he: { title: "Klarna — AI במקום 700 נציגי תמיכה", goal: "להפחית את עלויות תמיכת הלקוחות ולהאיץ תגובות מבלי לאבד איכות.", how: "סוכן AI שהוכשר על מיליוני שיחות תמיכה. יש לו גישה לנתוני לקוח, היסטוריית עסקאות ומדיניות החברה. פותר בעיות בעצמו — מסלים לאדם רק במקרים חריגים.", result: "הסוכן מטפל ב-2/3 מכלל הפניות. זמן פתרון ממוצע: 2 דקות לעומת 11 דקות בבני אדם. חיסכון שווה ערך ל-700 עובדים (~$40M בשנה).", insight: "המפתח הוא הגדרה ברורה: מה לאוטומט ומה להשאיר לבני אדם." }
+    id: 2, cat: "Управление", tag: "⚙️", year: "2024–2025",
+    source: "https://www.klarna.com/international/press/klarna-ai-assistant-handles-two-thirds-of-customer-service-chats-in-its-first-month/",
+    ru: {
+      title: "Klarna — ИИ-агент в клиентской поддержке",
+      goal: "Снизить стоимость поддержки и ускорить ответы без потери качества для 150 млн пользователей.",
+      how: "ИИ-агент на базе OpenAI обучен на миллионах диалогов поддержки. Умеет: отвечать на вопросы о возвратах, платежах, спорах, балансе, лимитах; работать на 35+ языках; предоставлять данные об остатках и графиках платежей. Доступен 24/7 в 23 рынках. Интегрирован в приложение Klarna. Сложные и эмоционально насыщенные запросы эскалируются к живым агентам.",
+      result: "За первый месяц: 2.3 млн диалогов, 2/3 всех обращений. Время решения: 2 мин vs 11 мин у людей. Повторные обращения снизились на 25%. Прогноз прибыли: +$40 млн в 2024 году. К 2025 году агент эквивалентен 853 сотрудникам (был 700), сэкономил $60 млн.",
+      limits: "В 2025 году Klarna признала, что 'чрезмерно сделала ставку на ИИ' — клиенты жаловались на шаблонные ответы при сложных вопросах. Компания начала нанимать людей обратно. Агент хорошо справляется с простыми задачами (статус платежа), плохо — с нюансированными проблемами. CEO Зимяткоски признал, что Klarna изначально не имела хорошей базы FAQ и IVR, поэтому результат частично объясняется низкой исходной планкой.",
+      insight: "Быстрые победы ИИ в поддержке реальны, но 'только ИИ' стратегия ведёт к обратному: люди ценят человеческое взаимодействие в сложных ситуациях."
+    },
+    en: {
+      title: "Klarna — AI Agent in Customer Support",
+      goal: "Reduce support costs and speed up responses without losing quality for 150M users.",
+      how: "AI agent built on OpenAI trained on millions of support conversations. Handles: returns, payments, disputes, balance and limit questions; works in 35+ languages; provides balance and payment schedule data. Available 24/7 in 23 markets. Integrated into the Klarna app. Complex or emotionally charged requests escalate to live agents.",
+      result: "First month: 2.3M conversations, 2/3 of all inquiries. Resolution time: 2 min vs 11 min for humans. Repeat inquiries down 25%. Profit forecast: +$40M in 2024. By 2025, agent equivalent to 853 employees (up from 700), saved $60M.",
+      limits: "In 2025, Klarna admitted it 'overpivoted on AI strategy' — customers complained of generic answers on complex issues. Company began rehiring humans. Agent handles simple tasks well (payment status), poorly handles nuanced problems. CEO Siemiatkowski acknowledged Klarna initially lacked good FAQ and IVR baseline, so results partly reflect a low starting point.",
+      insight: "Quick AI wins in support are real, but an 'AI only' strategy backfires: people value human interaction for complex situations."
+    },
+    he: {
+      title: "Klarna — סוכן AI בתמיכת לקוחות",
+      goal: "להפחית עלויות תמיכה ולהאיץ תגובות מבלי לאבד איכות עבור 150 מיליון משתמשים.",
+      how: "סוכן AI מבוסס OpenAI שהוכשר על מיליוני שיחות תמיכה. מטפל ב: החזרות, תשלומים, מחלוקות, שאלות יתרה ומגבלות; עובד ב-35+ שפות; מספק נתוני יתרה ולוח זמנים לתשלום. זמין 24/7 ב-23 שווקים. משולב באפליקציית Klarna. בקשות מורכבות או רגשיות מוסלמות לנציגים חיים.",
+      result: "החודש הראשון: 2.3 מיליון שיחות, 2/3 מכל הפניות. זמן פתרון: 2 דקות לעומת 11 דקות בבני אדם. פניות חוזרות ירדו ב-25%. תחזית רווח: +$40 מיליון ב-2024. עד 2025, הסוכן שווה ל-853 עובדים (מ-700), חסך $60 מיליון.",
+      limits: "ב-2025, Klarna הודתה שהיא 'יתר מדי התמקדה באסטרטגיית AI' — לקוחות התלוננו על תשובות שגרתיות לשאלות מורכבות. החברה החלה לגייס אנשים מחדש. הסוכן מטפל היטב במשימות פשוטות, גרוע בבעיות מורכבות.",
+      insight: "ניצחונות מהירים של AI בתמיכה הם אמיתיים, אבל אסטרטגיית 'AI בלבד' יוצרת תגובת נגד: אנשים מעריכים אינטראקציה אנושית במצבים מורכבים."
+    }
   },
   {
     id: 3, cat: "Продукты", tag: "🚀", year: "2023",
@@ -236,10 +348,11 @@ const CASES = [
     he: { title: "אסטוניה — עורך דין AI לאזרחים", goal: "להוריד את המחסום לגישה למידע משפטי ולהפחית את העומס על הרשויות הממשלתיות.", how: "עוזר AI משולב בפורטל שירותי הממשל. הוכשר על כל המסגרת המשפטית הלאומית. מסביר חוקים בשפה פשוטה, עוזר למלא טפסים, מציין לאיזה משרד לפנות ואילו מסמכים להביא.", result: "ירידה של 24% בביקורים 'חסרי טעם' ברשויות. אזרחים מגיעים מוכנים. פופולרי במיוחד בקרב קשישים ומהגרים.", insight: "AI כמתרגם בין שפה ביורוקרטית לשפה אנושית — ערך חברתי עצום." }
   },
   {
-    id: 5, cat: "Продукты", tag: "🚀", year: "2022–2023",
-    ru: { title: "GitHub Copilot — парный программист", goal: "Ускорить написание кода и снизить когнитивную нагрузку разработчика.", how: "LLM обучена на миллиардах строк публичного кода. Встроена в IDE как inline-подсказки прямо в месте курсора. Видит весь контекст файла и предлагает следующие строки — не чат, не отдельное окно.", result: "Разработчики принимают ~30% предложений. Задачи выполняются на 55% быстрее. 1.5 млн платных подписчиков за первый год.", insight: "Встроить ИИ в поток работы, а не рядом с ним — это удваивает adoption." },
-    en: { title: "GitHub Copilot — Pair Programmer", goal: "Speed up code writing and reduce developer cognitive load.", how: "LLM trained on billions of lines of public code. Embedded in the IDE as inline suggestions at the cursor position. Sees entire file context and suggests next lines — not a chat, not a separate window.", result: "Developers accept ~30% of suggestions. Tasks completed 55% faster. 1.5M paid subscribers in first year.", insight: "Embed AI into the workflow, not alongside it — this doubles adoption." },
-    he: { title: "GitHub Copilot — מתכנת זוגי", goal: "להאיץ כתיבת קוד ולהפחית עומס קוגניטיבי על מפתחים.", how: "LLM שהוכשר על מיליארדי שורות קוד ציבורי. משובץ ב-IDE כהצעות inline במיקום הסמן. רואה את כל הקשר הקובץ ומציע שורות הבאות — לא צ'אט, לא חלון נפרד.", result: "מפתחים מקבלים ~30% מההצעות. משימות מושלמות מהר ב-55%. 1.5 מיליון מנויים משלמים בשנה הראשונה.", insight: "לשלב AI בזרימת העבודה, לא לצידה — זה מכפיל את האימוץ." }
+    id: 5, cat: "Продукты", tag: "🚀", year: "2022–2025",
+    source: "https://techcrunch.com/2025/07/30/github-copilot-crosses-20-million-all-time-users/",
+    ru: { title: "GitHub Copilot — парный программист", goal: "Ускорить написание кода и снизить когнитивную нагрузку разработчика.", how: "LLM обучена на миллиардах строк публичного кода. Встроена в IDE (VS Code, JetBrains, Neovim) как inline-подсказки прямо в месте курсора. Видит весь контекст файла, предлагает следующие строки, целые функции, тесты, документацию. В 2025 году добавлены AI-агенты для автономного исправления багов и создания pull request.", result: "20 млн пользователей к июлю 2025 (+400% за год). 90% компаний Fortune 100 используют Copilot. Задачи выполняются на 55% быстрее (исследование с 4800 разработчиками). Copilot генерирует 46% всего кода у активных пользователей. GitHub revenue вырос на 40% г/г.", limits: "29% Python-кода содержит потенциальные уязвимости безопасности (2024). Код с Copilot на 41% чаще переписывается. Хорошо работает с рутинным кодом, плохо — с архитектурным контекстом системы. Продуктивность команды растёт только при глубоком adoption.", insight: "Встроить ИИ в поток работы, а не рядом с ним — удваивает adoption. Но скорость написания кода ≠ скорость доставки продукта." },
+    en: { title: "GitHub Copilot — Pair Programmer", goal: "Speed up code writing and reduce developer cognitive load.", how: "LLM trained on billions of lines of public code. Embedded in IDEs (VS Code, JetBrains, Neovim) as inline suggestions at the cursor. Sees entire file context, suggests next lines, whole functions, tests, documentation. In 2025, AI agents added for autonomous bug fixing and pull request creation.", result: "20M users by July 2025 (+400% in one year). 90% of Fortune 100 use Copilot. Tasks completed 55% faster (4,800-developer study). Copilot generates 46% of all code for active users. GitHub revenue up 40% YoY.", limits: "29% of Python code contains potential security weaknesses (2024 research). Copilot code has 41% higher churn rate. Works well for routine code, poorly for architectural context. Team productivity only improves with deep adoption.", insight: "Embedding AI in the workflow rather than alongside it doubles adoption. But code writing speed ≠ product delivery speed." },
+    he: { title: "GitHub Copilot — מתכנת זוגי", goal: "להאיץ כתיבת קוד ולהפחית עומס קוגניטיבי על מפתחים.", how: "LLM שהוכשר על מיליארדי שורות קוד ציבורי. משובץ ב-IDEs (VS Code, JetBrains, Neovim) כהצעות inline במיקום הסמן. רואה את כל הקשר, מציע שורות, פונקציות שלמות, בדיקות, תיעוד. ב-2025 נוספו סוכני AI לתיקון באגים אוטונומי.", result: "20 מיליון משתמשים ביולי 2025. 90% מ-Fortune 100 משתמשות ב-Copilot. משימות מהר ב-55%. Copilot מייצר 46% מהקוד. הכנסות GitHub +40% שנה על שנה.", limits: "29% מקוד Python מכיל חולשות אבטחה. קוד Copilot נכתב מחדש ב-41% יותר. מצטיין בקוד שגרתי, מתקשה עם הקשר ארכיטקטוני.", insight: "לשלב AI בזרימת העבודה מכפיל אימוץ. אבל מהירות כתיבת קוד ≠ מהירות מסירת מוצר." }
   },
   {
     id: 6, cat: "Управление", tag: "⚙️", year: "2023",
@@ -254,10 +367,11 @@ const CASES = [
     he: { title: "סינגפור — AI לטיפול בתלונות אזרחים", goal: "לטפל ביעילות באלפי תלונות ולנתב אותן למחלקה הנכונה מבלי לאבד הקשר.", how: "מערכת NLP קוראת תלונות, מסווגת לפי נושא (כבישים, רעש, פסולת, ביטחון), מעריכה דחיפות, מנתבת עם סיכום והקשר היסטורי.", result: "זמן ניתוב: מ-3 ימים ל-4 שעות. שגיאות סיווג ירדו ב-60%.", insight: "יעילות מנהלית היא לעתים קרובות פשוט סיווג מידע. AI עושה זאת טוב יותר מבני אדם." }
   },
   {
-    id: 8, cat: "Образование", tag: "🎓", year: "2023–2024",
-    ru: { title: "Duolingo Max — объяснение ошибок с контекстом", goal: "Перейти от «правильно/неправильно» к пониманию — почему ошибка является ошибкой.", how: "Два режима: «Explain My Answer» объясняет грамматику конкретной ошибки, «Roleplay» — живой диалог с AI-персонажем в заданной ситуации: кафе, аэропорт, переговоры.", result: "Пользователи учатся на 40% дольше за сессию. Особенно эффективен для уровней B1–B2, где механическое повторение уже не работает.", insight: "ИИ закрывает разрыв между знанием правила и умением им пользоваться." },
-    en: { title: "Duolingo Max — Contextual Error Explanation", goal: "Move from 'right/wrong' to understanding — why a mistake is a mistake.", how: "Two modes: 'Explain My Answer' explains the grammar of a specific error, 'Roleplay' — live dialogue with an AI character in a set situation: café, airport, negotiation.", result: "Users study 40% longer per session. Especially effective for B1–B2 levels where mechanical repetition no longer works.", insight: "AI bridges the gap between knowing a rule and being able to use it." },
-    he: { title: "Duolingo Max — הסבר שגיאות בהקשר", goal: "לעבור מ'נכון/לא נכון' להבנה — למה טעות היא טעות.", how: "שני מצבים: 'Explain My Answer' מסביר את הדקדוק של שגיאה ספציפית, 'Roleplay' — דיאלוג חי עם דמות AI במצב נתון: בית קפה, שדה תעופה, משא ומתן.", result: "משתמשים לומדים 40% יותר זמן לכל סשן. יעיל במיוחד לרמות B1–B2 שבהן חזרה מכנית כבר לא עובדת.", insight: "AI גשר את הפער בין ידיעת חוק לבין היכולת להשתמש בו." }
+    id: 8, cat: "Образование", tag: "🎓", year: "2023–2025",
+    source: "https://blog.duolingo.com/duolingo-max/",
+    ru: { title: "Duolingo Max — объяснение ошибок с контекстом", goal: "Перейти от «правильно/неправильно» к пониманию — почему ошибка является ошибкой. Восполнить разрыв между теорией и живым разговором.", how: "GPT-4 встроен в два режима: «Explain My Answer» — объясняет грамматику ошибки с примерами, можно задать уточняющий вопрос; «Roleplay» — диалог с AI-персонажем Lily в заданной ситуации: кафе, аэропорт, шопинг, с отчётом в конце. В 2024 добавлен Video Call с голосом. Стоит $30/мес или $168/год.", result: "DAU вырос на 59% до 34.1 млн (Q2 2024). Выручка +41% до $178.3 млн. Платных подписчиков 10.9 млн (+37%). 78% регулярных пользователей Roleplay чувствуют себя более подготовленными к реальным разговорам через 4 недели.", limits: "Roleplay доступен не для всех языков. Цена $30/мес значительно выше базового тарифа. Нет независимых академических исследований эффективности. Для уровня B2+ контент недостаточно сложный — ориентирован на начинающих. AI иногда ошибается в объяснениях грамматики.", insight: "ИИ закрывает разрыв между знанием правила и умением им пользоваться. Но цена за 'живую' практику внутри приложения остаётся высокой." },
+    en: { title: "Duolingo Max — Contextual Error Explanation", goal: "Move from 'right/wrong' to understanding — why a mistake is a mistake. Bridge the gap between theory and real conversation.", how: "GPT-4 powers two modes: 'Explain My Answer' — explains grammar of a specific error with examples, allows follow-up questions; 'Roleplay' — live dialogue with AI character Lily in set situations: café, airport, shopping, with end-of-session report. Video Call with voice added in 2024. Costs $30/month or $168/year.", result: "DAU grew 59% to 34.1M (Q2 2024). Revenue +41% to $178.3M. Paid subscribers 10.9M (+37%). 78% of regular Roleplay users feel more prepared for real conversations after 4 weeks.", limits: "Roleplay not available for all languages. $30/month significantly more than the base plan. No independent academic research on effectiveness. Not challenging enough for B2+ levels — skews toward beginners. AI can make grammar explanation errors.", insight: "AI bridges the gap between knowing a rule and being able to use it. But the price for 'live' practice inside an app remains high." },
+    he: { title: "Duolingo Max — הסבר שגיאות בהקשר", goal: "לעבור מ'נכון/לא נכון' להבנה — למה טעות היא טעות. לגשר על הפער בין תיאוריה לשיחה חיה.", how: "GPT-4 מפעיל שני מצבים: 'Explain My Answer' — מסביר דקדוק של שגיאה ספציפית עם דוגמאות; 'Roleplay' — דיאלוג חי עם דמות AI Lily במצבים שונים, עם דוח בסוף. שיחת וידאו קולית נוספה ב-2024. עולה $30/חודש.", result: "DAU גדל ב-59% ל-34.1M (Q2 2024). הכנסות +41% ל-$178.3M. 78% ממשתמשי Roleplay קבועים מרגישים מוכנים יותר לשיחות אמיתיות אחרי 4 שבועות.", limits: "Roleplay לא זמין לכל השפות. $30/חודש יקר משמעותית. אין מחקר עצמאי על יעילות. לא מספיק מאתגר לרמת B2+.", insight: "AI גשר על הפער בין ידיעת חוק לשימוש בו. אבל המחיר לתרגול 'חי' בתוך אפליקציה נשאר גבוה." }
   },
   {
     id: 9, cat: "Китай", tag: "🇨🇳", year: "2023–2024",
@@ -285,17 +399,111 @@ const CASES = [
   }
 ];
 
+// ─── CONFIG ──────────────────────────────────────────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJg3FTrbI3H5drxbDqEjeGzuMp3AW6AyQ256Mh2owwiMc-5S_wAQ73j5VGhsp96U481w/exec';
+
+// Дата последнего обновления базы кейсов — меняй здесь при добавлении новых
+const CONTENT_UPDATED = '2026-02-25';
+
 // ─── STATE ───────────────────────────────────────────────────────
 let lang = 'ru';
 let filter = 'all';
 let currentCase = null;
-const STORAGE_READ = 'aicj_read';
-const STORAGE_NOTES = 'aicj_notes';
+let currentUser = null;
+let _read = [];
+let _notes = {};
 
-function getRead() { try { return JSON.parse(localStorage.getItem(STORAGE_READ) || '[]'); } catch { return []; } }
-function getNotes() { try { return JSON.parse(localStorage.getItem(STORAGE_NOTES) || '{}'); } catch { return {}; } }
-function saveRead(arr) { localStorage.setItem(STORAGE_READ, JSON.stringify(arr)); }
-function saveNotes(obj) { localStorage.setItem(STORAGE_NOTES, JSON.stringify(obj)); }
+// ─── USER MANAGEMENT ─────────────────────────────────────────────
+function initUser() {
+  const savedEmail = localStorage.getItem('aicj_email');
+  const savedName = localStorage.getItem('aicj_name');
+  if (savedEmail && savedName) {
+    currentUser = savedEmail; // email — уникальный ключ
+    document.getElementById('welcomeScreen').style.display = 'none';
+    document.getElementById('userBadge').style.display = 'flex';
+    document.getElementById('userName').textContent = savedName;
+    loadFromSheets();
+  }
+
+  function checkReady() {
+    const name = document.getElementById('nameInput').value.trim();
+    const email = document.getElementById('emailInput').value.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    document.getElementById('startBtn').disabled = !(name.length >= 2 && emailValid);
+  }
+
+  document.getElementById('nameInput').addEventListener('input', checkReady);
+  document.getElementById('emailInput').addEventListener('input', checkReady);
+  document.getElementById('emailInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') startJournal();
+  });
+}
+
+function startJournal() {
+  const name = document.getElementById('nameInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim();
+  if (!name || !email) return;
+  currentUser = email; // email как уникальный идентификатор
+  localStorage.setItem('aicj_email', email);
+  localStorage.setItem('aicj_name', name);
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('userBadge').style.display = 'flex';
+  document.getElementById('userName').textContent = name;
+  loadFromSheets();
+}
+
+function resetUser() {
+  if (!confirm('Сменить пользователя? Текущие данные останутся в таблице.')) return;
+  localStorage.removeItem('aicj_email');
+  localStorage.removeItem('aicj_name');
+  currentUser = null;
+  _read = []; _notes = {};
+  renderGrid(); updateProgress();
+  document.getElementById('userBadge').style.display = 'none';
+  document.getElementById('welcomeScreen').style.display = 'flex';
+  document.getElementById('nameInput').value = '';
+  document.getElementById('emailInput').value = '';
+  document.getElementById('startBtn').disabled = true;
+}
+
+// ─── STORAGE ─────────────────────────────────────────────────────
+function getRead() { return _read; }
+function getNotes() { return _notes; }
+
+function saveRead(arr) { _read = arr; syncToSheets(); }
+function saveNotes(obj) { _notes = obj; syncToSheets(); }
+
+async function syncToSheets() {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE' || !currentUser) return;
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', user: currentUser, name: localStorage.getItem('aicj_name') || '', read: _read, notes: _notes })
+    });
+    showSyncBanner('✓ Сохранено', 1500);
+  } catch(e) { showSyncBanner('⚠ Не удалось сохранить', 2000); }
+}
+
+async function loadFromSheets() {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE' || !currentUser) return;
+  showSyncBanner('⏳ Загружаю...');
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=load&user=' + encodeURIComponent(currentUser));
+    const data = await res.json();
+    if (data.read) _read = data.read;
+    if (data.notes) _notes = data.notes;
+    renderGrid(); updateProgress();
+    showSyncBanner('✓ Данные загружены', 1800);
+  } catch(e) { showSyncBanner('⚠ Работаю офлайн', 2000); }
+}
+
+function showSyncBanner(msg, hideAfter) {
+  let b = document.getElementById('sync-banner');
+  if (!b) { b = document.createElement('div'); b.id = 'sync-banner'; document.body.appendChild(b); }
+  b.textContent = msg; b.style.opacity = '1';
+  if (hideAfter) setTimeout(() => { b.style.opacity = '0'; }, hideAfter);
+}
 
 // ─── CATEGORIES ──────────────────────────────────────────────────
 const CAT_STYLE = {
@@ -319,7 +527,22 @@ function setLang(l) {
   updateProgress();
 }
 
-function updateTranslations() {
+function updateWelcome() {
+  const t = T[lang];
+  const dir = lang === 'he' ? 'rtl' : 'ltr';
+  document.getElementById('welcome-title').textContent = t.welcome_title;
+  document.getElementById('welcome-desc').textContent = t.welcome_desc;
+  document.getElementById('nameInput').placeholder = t.welcome_name;
+  document.getElementById('emailInput').placeholder = t.welcome_email;
+  document.getElementById('startBtn').textContent = t.welcome_btn;
+  // sync lang buttons inside welcome
+  document.querySelectorAll('.welcome-overlay .lang-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === lang.toUpperCase());
+  });
+  // RTL for welcome box
+  document.querySelector('.welcome-box').setAttribute('dir', dir);
+}
+
   const t = T[lang];
   document.querySelectorAll('[data-t]').forEach(el => {
     const key = el.dataset.t;
@@ -329,6 +552,11 @@ function updateTranslations() {
     const key = el.dataset.tPlaceholder;
     if (t[key]) el.placeholder = t[key];
   });
+  // Дата обновления контента
+  const d = new Date(CONTENT_UPDATED);
+  const formatted = d.toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'en' ? 'en-GB' : 'ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const el = document.getElementById('content-date');
+  if (el) el.textContent = (T[lang].updated_label || 'updated') + ': ' + formatted;
 }
 
 function renderFilters() {
@@ -403,6 +631,21 @@ function openModal(id) {
   document.getElementById('modal-how').textContent = d.how;
   document.getElementById('modal-result').textContent = d.result;
   document.getElementById('modal-insight').textContent = d.insight;
+
+  // Limits
+  const limitsSection = document.getElementById('modal-limits-section');
+  const limitsEl = document.getElementById('modal-limits');
+  if (d.limits) { limitsEl.textContent = d.limits; limitsSection.style.display = ''; }
+  else { limitsSection.style.display = 'none'; }
+
+  // Source
+  const sourceSection = document.getElementById('modal-source-section');
+  const sourceLink = document.getElementById('modal-source-link');
+  if (currentCase.source) {
+    sourceLink.href = currentCase.source;
+    sourceLink.textContent = currentCase.source;
+    sourceSection.style.display = '';
+  } else { sourceSection.style.display = 'none'; }
   document.getElementById('modal-note').value = notes[id] || '';
   document.getElementById('modal-note').placeholder = t.notes_placeholder;
 
@@ -462,9 +705,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 // ─── INIT ────────────────────────────────────────────────────────
 updateTranslations();
+updateWelcome();
 renderFilters();
 renderGrid();
 updateProgress();
+initUser();
 </script>
 </body>
 </html>
