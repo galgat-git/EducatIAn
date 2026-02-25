@@ -566,6 +566,7 @@ function updateWelcome() {
   document.querySelector('.welcome-box').setAttribute('dir', dir);
 }
 
+function updateTranslations() {
   const t = T[lang];
   document.querySelectorAll('[data-t]').forEach(el => {
     const key = el.dataset.t;
