@@ -117,17 +117,17 @@
 <div class="welcome-overlay" id="welcomeScreen">
   <div class="welcome-box">
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px;gap:4px">
-      <button class="lang-btn active" id="wlang-ru" onclick="switchWelcomeLang('ru')">RU</button>
-      <button class="lang-btn" id="wlang-en" onclick="switchWelcomeLang('en')">EN</button>
-      <button class="lang-btn" id="wlang-he" onclick="switchWelcomeLang('he')">HE</button>
+      <button class="lang-btn active" id="wlang-ru">RU</button>
+      <button class="lang-btn" id="wlang-en">EN</button>
+      <button class="lang-btn" id="wlang-he">HE</button>
     </div>
     <div class="eyebrow">AI CASES JOURNAL</div>
     <h2 id="welcome-title">Добро пожаловать</h2>
     <p id="welcome-desc">Введи своё имя и адрес почты — мы сохраним твой прогресс и заметки, чтобы они были доступны с любого устройства.</p>
     <input class="welcome-input" id="nameInput" type="text" placeholder="Имя и фамилия" maxlength="60" style="margin-bottom:10px" />
     <input class="welcome-input" id="emailInput" type="email" placeholder="Email" maxlength="100" style="margin-bottom:14px" />
-    <button class="welcome-btn" id="startBtn" onclick="startJournal()" disabled>Начать →</button>
-    <button onclick="skipRegistration()" id="skipBtn" style="background:none;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;margin-top:12px;text-decoration:underline;text-underline-offset:3px;display:block;width:100%;padding:6px 0" onmouseover="this.style.color='#1a1814'" onmouseout="this.style.color='var(--muted)'">Войти без регистрации</button>
+    <button class="welcome-btn" id="startBtn" disabled>Начать →</button>
+    <button id="skipBtn" style="background:none;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;margin-top:12px;text-decoration:underline;text-underline-offset:3px;display:block;width:100%;padding:6px 0">Войти без регистрации</button>
   </div>
 </div>
 
@@ -733,6 +733,15 @@ renderFilters();
 renderGrid();
 updateProgress();
 initUser();
+
+// Welcome screen event listeners — attached after all functions are defined
+document.getElementById('wlang-ru').addEventListener('click', function() { switchWelcomeLang('ru'); });
+document.getElementById('wlang-en').addEventListener('click', function() { switchWelcomeLang('en'); });
+document.getElementById('wlang-he').addEventListener('click', function() { switchWelcomeLang('he'); });
+document.getElementById('startBtn').addEventListener('click', startJournal);
+document.getElementById('skipBtn').addEventListener('click', skipRegistration);
+document.getElementById('skipBtn').addEventListener('mouseover', function() { this.style.color = '#1a1814'; });
+document.getElementById('skipBtn').addEventListener('mouseout', function() { this.style.color = 'var(--muted)'; });
 </script>
 </body>
 </html>
